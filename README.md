@@ -2,4 +2,4 @@ This is an wireless counterbalance system that can adjust the length of the cabl
 
 #closed-loop Automatic Counterbalance animal experiment system
 
-#tension-free for freely moving animal experiment
+#tension-free and biting-prevention for cable in the freely moving animal experiment
