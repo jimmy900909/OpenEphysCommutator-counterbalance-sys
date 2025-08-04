@@ -1,6 +1,6 @@
 #include "HX711.h"
 
-// Load cell pins
+// Loadcell pins
 #define DOUT 4
 #define CLK 5
 
@@ -10,10 +10,10 @@
 
 // Encoder pins
 #define ENCODER_A 2  // Interrupt 0
-#define ENCODER_B 3  // Interrupt 1 (optional, for direction)
+#define ENCODER_B 3  // Interrupt 1 for direction
 
 HX711 scale;
-float calibration_factor = 4180;  // Adjust based on your load cell
+float calibration_factor = 4180;  //For loadcell
 
 // Motor speed (0 - 255)
 const int motorSpeed = 220;
@@ -24,7 +24,7 @@ const int bufferSize = 4;
 float tensionBuffer[bufferSize];
 int bufferIndex = 0;
 
-// Encoder tracking
+// Encoder tracking num
 volatile long encoderCount = 0;
 
 // Retraction delay logic
@@ -32,7 +32,7 @@ int ignoreIndex = 0;
 
 void setup() {
   Serial.begin(9600);
-  delay(500);  // Let HX711 stabilize
+  delay(1000);  // Mandatory time for stabilized init
 
   // Initialize HX711
   scale.begin(DOUT, CLK);
@@ -48,7 +48,7 @@ void setup() {
   scale.tare();
   Serial.println("HX711 ready.");
 
-  // Motor pins
+  //Setup Motor pins output
   pinMode(AIN1, OUTPUT);
   pinMode(AIN2, OUTPUT);
 
@@ -66,6 +66,7 @@ void setup() {
 }
 
 void loop() {
+  //To stablize the closed-loop
   if (!scale.is_ready()) {
     Serial.println("HX711 disconnected. Reinitializing...");
     scale.power_down();
@@ -89,7 +90,7 @@ void loop() {
   for (int i = 0; i < bufferSize; i++) {
     sum += tensionBuffer[i];
   }
-  float avgTension = (-1) * sum / bufferSize;  // Invert if necessary
+  float avgTension = (-1) * sum / bufferSize;  // Invert if necessary(depends on the side of the load cell)
 
   // Safely read encoder count
   long count;
@@ -97,7 +98,7 @@ void loop() {
   count = encoderCount;
   interrupts();
 
-  // Print data
+  // Data printing
   Serial.print("Avg Tension: ");
   Serial.print(avgTension, 2);
   Serial.print(" g | Encoder: ");
@@ -106,21 +107,21 @@ void loop() {
   // Decrement ignoreIndex each loop if active
   if (ignoreIndex > 0) {
     ignoreIndex--;
-    Serial.println("⏳ Retraction delay active → motor paused");
+    //Serial.println("Retraction delay active → motor paused");
   } else {
-    // Hysteresis bounds
+    // Hysteresis range(depends on the cable weight/tension when it's naturally hang)
     float lower_limit = 30.5;
     float upper_limit = 36.0;
-
+    //check the direction of the rotation  
     if (avgTension > upper_limit) {
-      // Clockwise spin (tighten)
+      //tighten
       analogWrite(AIN1, remotorSpeed);
       digitalWrite(AIN2, LOW);
     } else if (avgTension < lower_limit) {
-      // Anticlockwise spin (loosen)
+      // loosen
       digitalWrite(AIN1, LOW);
       analogWrite(AIN2, lsmotorSpeed);
-      ignoreIndex = 1;  // Pause motor next loop
+      ignoreIndex = 1;  // Pause motor next loop-- preventing over-sensitive
     } else {
       // In range → Stop motor
       digitalWrite(AIN1, LOW);
@@ -128,7 +129,7 @@ void loop() {
     }
   }
 
-  delay(100);  // Loop timing
+  delay(100);  // Loop timing--affects sensitivity 
 }
 
 void encoderISR() {
