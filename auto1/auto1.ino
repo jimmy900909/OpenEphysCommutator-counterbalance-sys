@@ -16,14 +16,15 @@ HX711 scale;
 float calibration_factor = 4180;  //For loadcell
 
 // Motor speed (0 - 255)
+const int threshold_emg = 200;
 const int motorSpeed = 220;
-const int remotorSpeed = 200;
-const int lsmotorSpeed = 140;
+const int lsmotorSpeed = 220;
+const int remotorSpeed = 140;
 // Tension smoothing buffer
-const int bufferSize = 4;
+const int bufferSize = 3;
 float tensionBuffer[bufferSize];
 int bufferIndex = 0;
-
+bool emg=false;
 // Encoder tracking num
 volatile long encoderCount = 0;
 
@@ -104,32 +105,46 @@ void loop() {
   Serial.print(" g | Encoder: ");
   Serial.println(count);
 
-  // Decrement ignoreIndex each loop if active
+  if(emg) {
+      analogWrite(AIN1, 220);
+      digitalWrite(AIN2, LOW); 
+      emg = false;
+  } // Decrement ignoreIndex each loop if active
+  else{
   if (ignoreIndex > 0) {
     ignoreIndex--;
-    //Serial.println("Retraction delay active → motor paused");
+    Serial.println("Retraction delay active → motor paused");
   } else {
     // Hysteresis range(depends on the cable weight/tension when it's naturally hang)
-    float lower_limit = 30.5;
-    float upper_limit = 36.0;
+    float lower_limit = 46.5;
+    float upper_limit = 50.0;
     //check the direction of the rotation  
     if (avgTension > upper_limit) {
-      //tighten
-      analogWrite(AIN1, remotorSpeed);
+      //loosen
+      if(avgTension > threshold_emg)
+      {
+      analogWrite(AIN1, lsmotorSpeed);
+      digitalWrite(AIN2, LOW);   
+      emg = true;
+      }
+      else{
+      analogWrite(AIN1, lsmotorSpeed);
       digitalWrite(AIN2, LOW);
+      }
     } else if (avgTension < lower_limit) {
-      // loosen
+      // tighten
       digitalWrite(AIN1, LOW);
-      analogWrite(AIN2, lsmotorSpeed);
+      analogWrite(AIN2, remotorSpeed);
       ignoreIndex = 1;  // Pause motor next loop-- preventing over-sensitive
+      
     } else {
       // In range → Stop motor
       digitalWrite(AIN1, LOW);
       digitalWrite(AIN2, LOW);
     }
   }
-
-  delay(100);  // Loop timing--affects sensitivity 
+  }
+  delay(40);  // Loop timing--affects sensitivity 
 }
 
 void encoderISR() {
