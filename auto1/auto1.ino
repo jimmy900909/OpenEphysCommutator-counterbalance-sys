@@ -16,10 +16,10 @@ HX711 scale;
 float calibration_factor = 4180;  //For loadcell
 
 // Motor speed (0 - 255)
-const int threshold_emg = 200;
-const int motorSpeed = 220;
+const int threshold_emg = 75;
+//const int motorSpeed = 220;
 const int lsmotorSpeed = 220;
-const int remotorSpeed = 140;
+const int remotorSpeed = 180;
 // Tension smoothing buffer
 const int bufferSize = 3;
 float tensionBuffer[bufferSize];
@@ -106,8 +106,9 @@ void loop() {
   Serial.println(count);
 
   if(emg) {
-      analogWrite(AIN1, 220);
+      analogWrite(AIN1, 255);
       digitalWrite(AIN2, LOW); 
+      delay(150);
       emg = false;
   } // Decrement ignoreIndex each loop if active
   else{
@@ -116,35 +117,50 @@ void loop() {
     Serial.println("Retraction delay active → motor paused");
   } else {
     // Hysteresis range(depends on the cable weight/tension when it's naturally hang)
-    float lower_limit = 46.5;
-    float upper_limit = 50.0;
+    float lower_limit = 44.7;
+    float upper_limit = 47.0;
     //check the direction of the rotation  
     if (avgTension > upper_limit) {
       //loosen
       if(avgTension > threshold_emg)
-      {
-      analogWrite(AIN1, lsmotorSpeed);
-      digitalWrite(AIN2, LOW);   
+      {//Fast and strong drag
+      analogWrite(AIN1, 255);
+      digitalWrite(AIN2, LOW);
+      //Serial.println("strongdrag");  
+      delay(150);
+      
       emg = true;
       }
-      else{
+      else{//normal drag scenerio
+      
       analogWrite(AIN1, lsmotorSpeed);
       digitalWrite(AIN2, LOW);
+      
+      delay(60);
+      Serial.println("normaldrag");
+            
+
       }
     } else if (avgTension < lower_limit) {
       // tighten
       digitalWrite(AIN1, LOW);
       analogWrite(AIN2, remotorSpeed);
-      ignoreIndex = 1;  // Pause motor next loop-- preventing over-sensitive
+      //Serial.println("retract");
+      delay(70);
+
+      ignoreIndex = 0;  // Pause motor next loop-- preventing over-sensitive
+
       
     } else {
       // In range → Stop motor
       digitalWrite(AIN1, LOW);
       digitalWrite(AIN2, LOW);
+      //Serial.println('stop');
+      delay(10);
     }
   }
   }
-  delay(40);  // Loop timing--affects sensitivity 
+  delay(30);  // Loop timing--affects sensitivity 
 }
 
 void encoderISR() {
@@ -154,4 +170,8 @@ void encoderISR() {
     encoderCount++;
   else
     encoderCount--;
+}
+void stopMotor() {
+  digitalWrite(AIN1, LOW);
+  digitalWrite(AIN2, LOW);
 }
