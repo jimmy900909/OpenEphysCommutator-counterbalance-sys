@@ -12,8 +12,8 @@
 // Encoder pins
 #define ENCODER_A 2
 #define ENCODER_B 3
-// SD (SPI)
-const int SD_CS = 10;   // SD 卡 CS 腳：接到 D10
+// SD module
+const int SD_CS = 10;   // CS pin of SD card
 
 // ---------------- HX711 ----------------
 HX711 scale;
@@ -36,18 +36,18 @@ const int remotorSpeed = 65;   // retract PWM (upper bound)
 int pwm_state = 0;
 const int PWM_STEP_OUT = 120;   
 const int PWM_STEP_IN  = 30;   
-// 收線 PWM（比例控制）
-const int   BASE_RETRACT_PWM     = 45;     // 基本收線 PWM
-const int   MAX_RETRACT_PWM      = 70;     // 收線最大 PWM
-const int   MIN_RETRACT_PWM      = 40;     // 確保馬達動得起
-const float KP_RETRACT_PWM_PER_G = 3.0f;   // 每 g 超過的比例增益
+// retracting PWM
+const int   BASE_RETRACT_PWM     = 45;     // base PWM
+const int   MAX_RETRACT_PWM      = 70;     // Maximum PWM
+const int   MIN_RETRACT_PWM      = 40;     // Minimum
+const float KP_RETRACT_PWM_PER_G = 3.0f;   // gain per gram lower than lowerlimit
 
-// 放線 PWM
+// loosening PWM
 const int   BASE_PAYOUT_PWM   = 70;
 const int   MAX_PAYOUT_PWM    = 190;
-const float KP_PWM_PER_G      = 4.0f;
+const float KP_PWM_PER_G      = 4.0f; // gain per gram after surpass upperlimit
 
-// ---------------- Burst（強制放線，即時） ----------------
+// ---------------- Burst（instantpayout for strong drag） ----------------
 const int BURST_PWM = 230;                     
 const unsigned long BURST_MS = 150;            
 unsigned long burst_until_ms = 0;
@@ -59,17 +59,17 @@ const unsigned long IMPACT_COAST_MS = 120;
 const int IMPACT_PAYOUT_PWM = 70;               
 unsigned long impact_until_ms = 0;              
 
-// Burst 後禁止回收視窗
+// No retracting after burst
 const unsigned long POST_BURST_NO_RETRACT_MS = 600;     
 unsigned long no_retract_until_ms = 0;
 
-// ---------------- 張力平滑 ----------------
+// ---------------- Smoothen tension ----------------
 float T_fast_g = 0.0f;                
 float T_slow_g = 0.0f;                
-const float T_ALPHA_FAST = 0.8f;      // ★ 更快
+const float T_ALPHA_FAST = 0.8f;      // ★ bigger to be more sensitive 
 const float T_ALPHA_SLOW = 0.25f;
 
-// ---------------- 門檻/許可 ----------------
+// ---------------- threshold ----------------
 float lower_limit = 11.7f;
 float upper_limit = 19.5f;
 
@@ -109,7 +109,7 @@ unsigned long loosen_grace_until_ms = 0;
 
 const float LOWER_HYST_G = 0.8f;
 
-// ---------------- Loop 節拍 ----------------
+// ---------------- Loop time ----------------
 const unsigned long LOOP_MS = 1;
 unsigned long last_loop_ms = 0;
 
@@ -121,7 +121,7 @@ const unsigned long LOG_INTERVAL_MS = 100;
 uint32_t log_lines_since_flush = 0;
 const uint32_t FLUSH_EVERY = 20;           
 
-// 自動找 LOG00.CSV ~ LOG99.CSV
+// File check LOG00.CSV ~ LOG99.CSV
 bool openLogFile() {
   char name[12] = "LOG00.CSV";
   for (int i = 0; i < 100; i++) {
